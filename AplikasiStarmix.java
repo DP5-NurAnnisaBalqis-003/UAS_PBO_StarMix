@@ -2543,3 +2543,364 @@ private void btnBayarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
                             id_transaksi += getTanggal();
                             id_transaksi = id_transaksi.replace("/", "");
 
+
+                            // insert history
+                            String insHistory = "INSERT INTO `tb_history`(`id`, `id_transaksi`, `id_user`, `list_barang`, `jumlah_barang`, `total_tagihan`, `jumlah_uang`, `kembalian_uang`, `tanggal`) VALUES ('"+id_transaksi+"','"+idTransaksi+"','"+Session.session.getSession()+"','"+ListBarang+"','"+JumlahBarang+"','"+KeranjangTotalBayar+"','"+uang+"','"+kembalian+"','"+getTanggal()+"')";
+                            PreparedStatement pre = conn.prepareStatement(insHistory);
+                            pre.execute();
+
+
+                            JOptionPane.showMessageDialog(rootPane, "Berhasil... \nPembayaran Berhasil\nKeranjang akan dikosongkan!", "Berhasil", JOptionPane.INFORMATION_MESSAGE);
+
+                        } catch (SQLException e) {
+                            JOptionPane.showMessageDialog(rootPane, "Oopss...\nPermintaan ditolak!", "Gagal", JOptionPane.ERROR_MESSAGE);
+                            System.out.println(e);
+                        }
+                        showTabelKeranjang();
+
+                    }else{
+                        JOptionPane.showMessageDialog(rootPane, "Oopss...\nUang Tidak cukup untuk membayar!", "Gagal", JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+            } catch (SQLException e) {
+
+            }
+        } else {
+            JOptionPane.showMessageDialog(rootPane, "Oopss...\nHarga hanya boleh berupa Angka!", "Gagal", JOptionPane.ERROR_MESSAGE);
+        }
+    }else{
+        JOptionPane.showMessageDialog(rootPane, "Oopss...\nData harus diisi dengan benar!", "Gagal", JOptionPane.ERROR_MESSAGE);
+    }
+}//GEN-LAST:event_btnBayarActionPerformed
+
+private void btnSimban_UbahKeranjangActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnSimban_UbahKeranjangActionPerformed
+    // TODO add your handling code here:
+    String kode = lblKode_UbahKeranjang.getText();
+    String jumlah = txtJumlah_UbahKeranjang.getText();
+
+    if("-".equals(kode)){
+        JOptionPane.showMessageDialog(rootPane, "Oopss...\nPilih data yang akan diubah pada tabel di atas!", "Gagal", JOptionPane.ERROR_MESSAGE);
+    }else{
+        if(!kode.isEmpty() && !kode.isBlank()){
+            if (jumlah.matches("\\d+")) {
+                if(Integer.parseInt(jumlah) > 0){
+                    try {
+                        Connection conn = Koneksi.ConnectDB();
+                        // cek barang di stok
+                        String qr1 = "SELECT * FROM `tb_barang` WHERE id_user='"+Session.session.getSession()+"' AND `kode`='"+kode+"'";
+                        Statement st1 = conn.createStatement();
+                        ResultSet rs1 = st1.executeQuery(qr1);
+                        String stokBarang = "0";
+                        while(rs1.next()){
+                            stokBarang = rs1.getString("stok");
+                        }
+
+                        //cek jumlah keranjang
+                        String qr2 = "SELECT * FROM `tb_keranjang` WHERE id_user='"+Session.session.getSession()+"' AND `kode_barang`='"+kode+"'";
+                        Statement st2 = conn.createStatement();
+                        ResultSet rs2 = st2.executeQuery(qr2);
+                        String jumlahKeranjang = "0";
+                        while(rs2.next()){
+                            jumlahKeranjang = rs2.getString("jumlah");
+                        }
+
+                        if(Integer.parseInt(jumlah) > Integer.parseInt(jumlahKeranjang)){
+                            int selisih = Integer.parseInt(jumlah) - Integer.parseInt(jumlahKeranjang);
+                            if(Integer.parseInt(stokBarang) < selisih){
+                                JOptionPane.showMessageDialog(rootPane, "Oopss...\nStok barang tidak mencukupi jumlah yang ditambah ke keranjang!", "Gagal", JOptionPane.ERROR_MESSAGE);
+                            }else{
+                                int hitung = Integer.parseInt(stokBarang) - selisih;
+                                String updt = "UPDATE `tb_barang` SET `stok`='"+hitung+"' WHERE id_user='"+Session.session.getSession()+"' AND `kode`='"+kode+"'";
+                                PreparedStatement preSt = conn.prepareStatement(updt);
+                                preSt.execute();
+
+                                String insrt = "UPDATE `tb_keranjang` SET `jumlah`='"+jumlah+"' WHERE id_user='"+Session.session.getSession()+"' AND `kode_barang`='"+kode+"'";
+                                PreparedStatement preStmt = conn.prepareStatement(insrt);
+                                preStmt.execute();
+                                JOptionPane.showMessageDialog(rootPane, "Berhasil.. \nKeranjang berhasil diubah!", "Berhasil", JOptionPane.INFORMATION_MESSAGE);
+                                RefreshTampilanTransaksi();
+                                RefreshTampilanAdmin();
+                            }
+                        }else if(Integer.parseInt(jumlah) < Integer.parseInt(jumlahKeranjang)){
+                            int selisih = Integer.parseInt(jumlahKeranjang) - Integer.parseInt(jumlah);
+                            if(Integer.parseInt(stokBarang) < selisih){
+                                if(Integer.parseInt(stokBarang) == 0){
+                                    int hitung = Integer.parseInt(stokBarang) + selisih;
+                                    String updt = "UPDATE `tb_barang` SET `stok`='"+hitung+"' WHERE id_user='"+Session.session.getSession()+"' AND `kode`='"+kode+"'";
+                                    PreparedStatement preSt = conn.prepareStatement(updt);
+                                    preSt.execute();
+
+                                    String insrt = "UPDATE `tb_keranjang` SET `jumlah`='"+jumlah+"' WHERE id_user='"+Session.session.getSession()+"' AND `kode_barang`='"+kode+"'";
+                                    PreparedStatement preStmt = conn.prepareStatement(insrt);
+                                    preStmt.execute();
+                                    JOptionPane.showMessageDialog(rootPane, "Berhasil.. \nKeranjang berhasil diubah!", "Berhasil", JOptionPane.INFORMATION_MESSAGE);
+                                    RefreshTampilanTransaksi();
+                                    RefreshTampilanAdmin();
+                                }else{
+                                    JOptionPane.showMessageDialog(rootPane, "Oopss...\nStok barang tidak mencukupi jumlah yang ditambah ke keranjang!", "Gagal", JOptionPane.ERROR_MESSAGE);
+                                }
+                            }else{
+                                int hitung = Integer.parseInt(stokBarang) + selisih;
+                                String updt = "UPDATE `tb_barang` SET `stok`='"+hitung+"' WHERE id_user='"+Session.session.getSession()+"' AND `kode`='"+kode+"'";
+                                PreparedStatement preSt = conn.prepareStatement(updt);
+                                preSt.execute();
+
+                                String insrt = "UPDATE `tb_keranjang` SET `jumlah`='"+jumlah+"' WHERE id_user='"+Session.session.getSession()+"' AND `kode_barang`='"+kode+"'";
+                                PreparedStatement preStmt = conn.prepareStatement(insrt);
+                                preStmt.execute();
+                                JOptionPane.showMessageDialog(rootPane, "Berhasil.. \nKeranjang berhasil diubah!", "Berhasil", JOptionPane.INFORMATION_MESSAGE);
+                                RefreshTampilanTransaksi();
+                                RefreshTampilanAdmin();
+                            }
+                        }
+
+                    } catch (SQLException e) {
+                        JOptionPane.showMessageDialog(rootPane, "Oopss...\nData ditolak!", "Gagal", JOptionPane.ERROR_MESSAGE);
+                        System.out.println(e);
+                        RefreshTampilanTransaksi();
+                    }
+                }else{
+                    JOptionPane.showMessageDialog(rootPane, "Oopss...\nMinimum jumlah adalah 1", "Gagal", JOptionPane.ERROR_MESSAGE);
+                }
+            } else {
+                JOptionPane.showMessageDialog(rootPane, "Oopss...\nJumlah hanya boleh berupa Angka!", "Gagal", JOptionPane.ERROR_MESSAGE);
+            }
+        }else{
+            JOptionPane.showMessageDialog(rootPane, "Oopss...\nData harus diisi dengan benar!", "Gagal", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+}//GEN-LAST:event_btnSimban_UbahKeranjangActionPerformed
+
+private void btnRefreshStrukActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnRefreshStrukActionPerformed
+    // TODO add your handling code here:
+    lblRingkasan_Total.setText("0");
+    lblRingkasan_Uang.setText("0");
+    lblRingkasan_Kembalian.setText("0");
+    lblTanggalValue.setText("0/0/0");
+    jumlah_listStruk.setText("");
+    struk_TotalBayar.setText("Rp 0");
+    struk_JumlahUang.setText("Rp 0");
+    struk_KembalianUang.setText("Rp 0");
+    harga_listStruk.setText("");
+    nama_listStruk.setText("");
+    jumlah_listStruk.setText("");
+}//GEN-LAST:event_btnRefreshStrukActionPerformed
+
+public String getTanggal(){
+    LocalDate tanggalSekarang = LocalDate.now();
+
+    int tanggal = tanggalSekarang.getDayOfMonth();
+    int bulan = tanggalSekarang.getMonthValue();
+    int tahun = tanggalSekarang.getYear();
+
+    return tanggal + "/" + bulan + "/" + tahun;
+}
+
+private void btnPrintActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnPrintActionPerformed
+    // TODO add your handling code here:
+    if("0".equals(lblRingkasan_Uang.getText())){
+        JOptionPane.showMessageDialog(rootPane, "Oopss...\nHarap selesaikan pembayaran!", "Gagal", JOptionPane.ERROR_MESSAGE);
+    } else{
+        lblTanggalValue.setText(getTanggal());
+        struk_TotalBayar.setText("Rp "+lblRingkasan_Total.getText());
+        struk_JumlahUang.setText("Rp "+lblRingkasan_Uang.getText());
+        struk_KembalianUang.setText("Rp "+lblRingkasan_Kembalian.getText());
+
+        try {
+            Connection conn = Koneksi.ConnectDB();
+            String qry = "SELECT * FROM tb_transaksi WHERE id_user='"+Session.session.getSession()+"' AND id_keranjang='"+idTransaksi+"' AND tanggal='"+getTanggal()+"'";
+            Statement sst = conn.createStatement();
+            ResultSet rrs = sst.executeQuery(qry);
+            String jumlahRes = "";
+            String namaRes = "";
+            String hargaRes = "";
+            while(rrs.next()){
+                String jumlah = rrs.getString("jumlah");
+                jumlahRes +=  jumlah + "\n";
+
+                String nama = rrs.getString("nama");
+                namaRes +=  nama + "\n";
+
+                String harga = rrs.getString("harga");
+                hargaRes +=  String.format("%5s", "Rp "+RupiahFromat(Integer.parseInt(harga))+"\n");
+            }
+            jumlah_listStruk.append(jumlahRes);
+            nama_listStruk.append(namaRes);
+            harga_listStruk.append(hargaRes);
+
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(rootPane, "Oopss...\nData ditolak!", "Gagal", JOptionPane.ERROR_MESSAGE);
+            System.out.println(e);
+        }
+    }
+
+}//GEN-LAST:event_btnPrintActionPerformed
+
+private void link_logoutActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_link_logoutActionPerformed
+    // TODO add your handling code here:
+
+    int Pilih = JOptionPane.showConfirmDialog(rootPane,"Yakin ingin logout?","Konfirmasi",JOptionPane.OK_CANCEL_OPTION);
+    if(Pilih == JOptionPane.OK_OPTION){
+        //set session
+        Session.session.setSession(null);
+        Login login = new Login();
+        this.setVisible(false);
+        login.setVisible(true);
+
+    }else if(Pilih == JOptionPane.CANCEL_OPTION){
+        RefreshTampilanTransaksi();
+    }
+}//GEN-LAST:event_link_logoutActionPerformed
+
+private void link_profileActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_link_profileActionPerformed
+    // TODO add your handling code here:
+    Profile profile = new Profile();
+    this.setVisible(false);
+    profile.setVisible(true);
+}//GEN-LAST:event_link_profileActionPerformed
+
+private void txtJumlah_UbahKeranjangActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtJumlah_UbahKeranjangActionPerformed
+    // TODO add your handling code here:
+}//GEN-LAST:event_txtJumlah_UbahKeranjangActionPerformed
+
+private void link_historyActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_link_historyActionPerformed
+    // TODO add your handling code here:
+    History history = new History();
+    this.setVisible(false);
+    history.setVisible(true);
+}//GEN-LAST:event_link_historyActionPerformed
+
+/**
+ * @param args the command line arguments
+ */
+public static void main(String args[]) {
+    /* Set the Nimbus look and feel */
+    //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
+    /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
+     * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html
+     */
+    try {
+        for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
+            if ("Nimbus".equals(info.getName())) {
+                javax.swing.UIManager.setLookAndFeel(info.getClassName());
+                break;
+            }
+        }
+    } catch (ClassNotFoundException ex) {
+        java.util.logging.Logger.getLogger(AplikasiStarmix.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+    } catch (InstantiationException ex) {
+        java.util.logging.Logger.getLogger(AplikasiStarmix.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+    } catch (IllegalAccessException ex) {
+        java.util.logging.Logger.getLogger(AplikasiStarmix.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+    } catch (javax.swing.UnsupportedLookAndFeelException ex) {
+        java.util.logging.Logger.getLogger(AplikasiStarmix.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+    }
+    //</editor-fold>
+    //</editor-fold>
+
+    /* Create and display the form */
+    java.awt.EventQueue.invokeLater(new Runnable() {
+        public void run() {
+            new AplikasiStarmix().setVisible(true);
+        }
+    });
+}
+
+
+
+// Variables declaration - do not modify//GEN-BEGIN:variables
+private javax.swing.JComboBox<String> FieldCari;
+private javax.swing.JComboBox<String> FilterTabel;
+private javax.swing.JLabel NamaToko;
+private javax.swing.JLabel NamaToko_struk;
+private javax.swing.JTable TabelBarang;
+private javax.swing.JTable TabelKeranjang;
+private javax.swing.JButton btnBayar;
+private javax.swing.JButton btnCariBarang;
+private javax.swing.JButton btnHapus_Barang;
+private javax.swing.JButton btnHapus_Keranjang;
+private javax.swing.JButton btnHapus_SemuaKeranjang;
+private javax.swing.JButton btnKeranjang;
+private javax.swing.JButton btnPrint;
+private javax.swing.JButton btnRefreshAdmin;
+private javax.swing.JButton btnRefreshStruk;
+private javax.swing.JButton btnRefreshTransaksi;
+private javax.swing.JButton btnSimban_UbahKeranjang;
+private javax.swing.JButton btnSimpan_Tambah;
+private javax.swing.JButton btnSimpan_UbahBarang;
+private javax.swing.JComboBox<String> cmbKategori_Tambah;
+private javax.swing.JTextArea harga_listStruk;
+private javax.swing.JLabel jLabel10;
+private javax.swing.JLabel jLabel11;
+private javax.swing.JLabel jLabel12;
+private javax.swing.JLabel jLabel13;
+private javax.swing.JLabel jLabel15;
+private javax.swing.JLabel jLabel16;
+private javax.swing.JLabel jLabel17;
+private javax.swing.JLabel jLabel18;
+private javax.swing.JLabel jLabel19;
+private javax.swing.JLabel jLabel2;
+private javax.swing.JLabel jLabel20;
+private javax.swing.JLabel jLabel22;
+private javax.swing.JLabel jLabel23;
+private javax.swing.JLabel jLabel24;
+private javax.swing.JLabel jLabel25;
+private javax.swing.JLabel jLabel26;
+private javax.swing.JLabel jLabel27;
+private javax.swing.JLabel jLabel28;
+private javax.swing.JLabel jLabel29;
+private javax.swing.JLabel jLabel3;
+private javax.swing.JLabel jLabel30;
+private javax.swing.JLabel jLabel31;
+private javax.swing.JLabel jLabel32;
+private javax.swing.JLabel jLabel33;
+private javax.swing.JLabel jLabel35;
+private javax.swing.JLabel jLabel37;
+private javax.swing.JLabel jLabel38;
+private javax.swing.JLabel jLabel40;
+private javax.swing.JLabel jLabel6;
+private javax.swing.JLabel jLabel8;
+private javax.swing.JLabel jLabel9;
+private javax.swing.JScrollPane jScrollPane1;
+private javax.swing.JScrollPane jScrollPane2;
+private javax.swing.JScrollPane jScrollPane3;
+private javax.swing.JScrollPane jScrollPane4;
+private javax.swing.JScrollPane jScrollPane5;
+private javax.swing.JTextArea jumlah_listStruk;
+private javax.swing.JLabel lblKode_Ubah;
+private javax.swing.JLabel lblKode_UbahKeranjang;
+private javax.swing.JLabel lblRingkasan_Kembalian;
+private javax.swing.JLabel lblRingkasan_Total;
+private javax.swing.JLabel lblRingkasan_Uang;
+private javax.swing.JLabel lblTanggalValue;
+private javax.swing.JButton link_history;
+private javax.swing.JButton link_logout;
+private javax.swing.JButton link_profile;
+private javax.swing.JLabel namaToko_struk;
+private javax.swing.JTextArea nama_listStruk;
+private javax.swing.JLabel struk_JumlahUang;
+private javax.swing.JLabel struk_KembalianUang;
+private javax.swing.JLabel struk_TotalBayar;
+private javax.swing.JLabel totalKeranjang;
+private javax.swing.JLabel totalKeranjang_Pembayaran;
+private javax.swing.JTextField txtCariBarang;
+private javax.swing.JTextField txtHarga_Tambah;
+private javax.swing.JTextField txtHarga_Ubah;
+private javax.swing.JTextField txtJumlahUang_Bayar;
+private javax.swing.JTextField txtJumlah_Keranjang;
+private javax.swing.JTextField txtJumlah_UbahKeranjang;
+private javax.swing.JTextField txtKode_Hapus;
+private javax.swing.JTextField txtKode_Keranjang;
+private javax.swing.JTextField txtKode_KeranjangHapus;
+private javax.swing.JTextField txtNama_Tambah;
+private javax.swing.JTextField txtNama_Ubah;
+private javax.swing.JTextField txtStok_Tambah;
+private javax.swing.JTextField txtStok_Ubah;
+// End of variables declaration//GEN-END:variables
+
+private void setIcon() {
+    setIconImage(Toolkit.getDefaultToolkit().getImage(getClass().getResource("../assets/icon-apk.png")));
+}
+}
+
+
